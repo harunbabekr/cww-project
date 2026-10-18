@@ -1,0 +1,50 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Dependencies & Build
+node_modules/
+dist/
+dist-ssr/
+build/
+
+# Environment variables (حماية المفاتيح السرية مع السماح بملفات المثال)
+.env
+.env.*
+*.local
+!.env.example
+
+# Firebase & Push Notification Keys (حماية مفاتيح إشعارات فلاتر)
+*firebase-adminsdk*.json
+serviceAccountKey.json
+google-services.json
+
+# Deployment & Cache
+.vercel
+.render
+.cache/
+uploads/
+temp/
+tmp/
+
+# Archives (تجاهل الملفات المضغوطة حتى لا تُرفع على GitHub)
+*.zip
+*.tar.gz
+*.rar
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+Thumbs.db
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?

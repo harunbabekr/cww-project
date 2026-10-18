@@ -1,0 +1,25 @@
+{
+  "name": "CWW — تكلّم وافهم جميع لغات العالم",
+  "short_name": "CWW",
+  "description": "ترجمة فورية للمحادثة والمكالمات والرسائل والفيديو واللهجات المحلية",
+  "id": "/",
+  "start_url": "/?source=pwa",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "lang": "ar",
+  "dir": "rtl",
+  "background_color": "#0f2a2e",
+  "theme_color": "#0f2a2e",
+  "categories": ["productivity", "utilities", "education"],
+  "icons": [
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    { "name": "المحادثة في الواقع", "url": "/talk", "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }] },
+    { "name": "المكالمات", "url": "/calls", "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }] },
+    { "name": "الرسائل", "url": "/chat", "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }] }
+  ]
+}
