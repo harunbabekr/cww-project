@@ -26,3 +26,22 @@ export const errMsg = (e) =>
   e?.response?.data?.message || (e?.code === 'ERR_NETWORK' ? 'تعذّر الاتصال بالخادم' : e?.message) || 'حدث خطأ غير متوقع';
 
 export default api;
+
+export function getFriendlyErrorMessage(error) {
+  // في حال انقطاع الإنترنت أو استيقاظ سيرفر Render المجاني
+  if (!error?.response && (error?.message === 'Network Error' || error?.code === 'ECONNABORTED')) {
+    return 'تعذر الاتصال بالخادم، يرجى التحقق من اتصال الإنترنت أو الانتظار لحظات';
+  }
+
+  const serverMsg = error?.response?.data?.message || error?.message || '';
+
+  // منع ظهور أي رسائل إنجليزية تقنية أو أكواد برمجية للمستخدم
+  if (
+    !serverMsg ||
+    /network error|failed to fetch|cors|status code|unexpected token|groq|elevenlabs|axios/i.test(serverMsg)
+  ) {
+    return 'حدث خلل مؤقت أثناء تنفيذ العملية، يرجى المحاولة مرة أخرى';
+  }
+
+  return serverMsg;
+}
