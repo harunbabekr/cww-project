@@ -1,0 +1,44 @@
+/* ==========================================================================
+   07. Auth, Settings, Support & Admin Responsive Rules
+   ========================================================================== */
+
+@media (max-width: 900px) {
+  /* إصلاح صفحة تسجيل الدخول (.auth-shell) التي كانت مقسومة نصفين بالطول في الصورة 1 */
+  .auth-shell {
+    display: flex !important;
+    flex-direction: column !important;
+    grid-template-columns: 1fr !important;
+    min-height: 100dvh !important;
+    width: 100% !important;
+  }
+
+  .auth-hero {
+    padding: 24px 18px !important;
+    order: 2 !important;
+  }
+
+  .auth-hero h1 {
+    font-size: 26px !important;
+  }
+
+  .auth-hero p {
+    font-size: 14px !important;
+  }
+
+  .auth-panel {
+    padding: 20px 14px !important;
+    order: 1 !important;
+    width: 100% !important;
+  }
+
+  .auth-card {
+    max-width: 100% !important;
+    padding: 20px 16px !important;
+    border-radius: 18px !important;
+  }
+
+  /* إصلاح حقل رمز الدولة + رقم الهاتف في التسجيل */
+  .auth-card div[style*="grid-template-columns: 130px 1fr"] {
+    grid-template-columns: 110px 1fr !important;
+  }
+}

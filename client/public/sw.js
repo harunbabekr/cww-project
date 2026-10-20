@@ -1,8 +1,9 @@
 /* CWW service worker — الواجهة تعمل دون اتصال، أما الـ API والسوكت فمن الشبكة دائماً */
-const VERSION = 'cww-v2';
+const VERSION = 'cww-v3';
 const SHELL = ['/', '/index.html', '/offline.html', '/manifest.webmanifest', '/favicon.svg', '/icons/icon-192.png'];
 
 self.addEventListener('install', (e) => {
+  self.skipWaiting(); // تفعيل النسخة الجديدة فوراً دون انتظار إغلاق التبويبات القديمة
   e.waitUntil(caches.open(VERSION).then((c) => c.addAll(SHELL)));
 });
 
@@ -30,7 +31,7 @@ self.addEventListener('fetch', (e) => {
     return;
   }
 
-  if (url.origin !== self.location.origin) return;                       // فيديوهات وصور خارجية
+  if (url.origin !== self.location.origin) return;                        // فيديوهات وصور خارجية
   if (url.pathname.startsWith('/api') || url.pathname.startsWith('/socket.io')) return;
 
   // التنقل: الشبكة أولاً ثم الواجهة المخزنة ثم صفحة عدم الاتصال

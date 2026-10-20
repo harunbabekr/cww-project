@@ -1,0 +1,67 @@
+/* ==========================================================================
+   01. Base & Global Responsive Variables
+   ========================================================================== */
+
+:root {
+  --cww-bottom-bar-h: 64px;
+  --cww-safe-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  width: 100%;
+  max-width: 100%;
+  min-height: 100vh;
+  min-height: 100dvh;
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+}
+
+@media (max-width: 900px) {
+  /* تفكيك جميع الشبكات الثنائية والثلاثية (.grid-2, .grid-3) لتصبح عموداً واحداً مريحاً */
+  .grid-2,
+  .grid-3,
+  .grid-auto {
+    grid-template-columns: 1fr !important;
+    gap: 14px !important;
+  }
+
+  .card {
+    padding: 16px !important;
+    border-radius: 16px !important;
+    min-width: 0 !important;
+    width: 100% !important;
+  }
+
+  .page-header {
+    margin-bottom: 16px !important;
+  }
+
+  .page-title {
+    font-size: 22px !important;
+  }
+
+  .page-sub {
+    font-size: 13.5px !important;
+  }
+
+  .row-between {
+    flex-wrap: wrap !important;
+    gap: 10px !important;
+  }
+
+  .input,
+  .select,
+  .textarea {
+    font-size: 16px !important;
+    width: 100% !important;
+  }
+}

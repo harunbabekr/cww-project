@@ -1,0 +1,19 @@
+/* ==========================================================================
+   05. Calls & Overlays Responsive Rules
+   ========================================================================== */
+
+@media (max-width: 900px) {
+  /* منع تداخل أزرار الاتصال والفيديو والرسائل مع رقم الهاتف في بطاقة جهة الاتصال */
+  .card .row-between {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 10px !important;
+  }
+
+  .card .row-between > div {
+    width: 100% !important;
+    justify-content: flex-start !important;
+    flex-wrap: wrap !important;
+  }
+}
