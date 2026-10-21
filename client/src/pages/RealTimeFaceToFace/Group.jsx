@@ -110,8 +110,8 @@ export default function Group() {
         {speakers.map((sp) => (
           <section key={sp.id} className={`card speaker${live === sp.id ? ' live' : ''}`}>
             <div className="row between">
-              <input className="input" style={{ maxWidth: 140 }} value={sp.name} maxLength={20} onChange={(e) => update(sp.id, { name: e.target.value })} aria-label="اسم المتكلم" />
-              <div style={{ width: 170 }}><LanguageSelect value={sp.lang} onChange={(v) => update(sp.id, { lang: v })} id={`g-${sp.id}`} /></div>
+              <input className="input name-pick" value={sp.name} maxLength={20} onChange={(e) => update(sp.id, { name: e.target.value })} aria-label="اسم المتكلم" />
+              <div className="lang-pick"><LanguageSelect value={sp.lang} onChange={(v) => update(sp.id, { lang: v })} id={`g-${sp.id}`} /></div>
               {speakers.length > 2 && <button className="btn small ghost" onClick={() => setSpeakers((l) => l.filter((x) => x.id !== sp.id))} aria-label="حذف"><X /></button>}
             </div>
             <div className="speaker-text" style={{ minHeight: 70 }}>{lastFor(sp) || <span className="muted">هنا يظهر ما يقوله الآخرون بلغتك ({langName(sp.lang)})</span>}</div>

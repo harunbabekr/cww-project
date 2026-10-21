@@ -64,7 +64,7 @@ function DialectReview() {
       {error && <div className="alert error">{error}</div>}
       {items.length === 0 ? <Empty icon={Check}>لا توجد اقتراحات بانتظار المراجعة</Empty> : items.map((e) => (
         <div key={e._id} className="contact-item" style={{ flexWrap: 'wrap' }}>
-          <div className="info" style={{ minWidth: 220 }}>
+          <div className="info" style={{ minWidth: 'min(220px, 100%)' }}>
             <strong>{e.word}</strong> <span className="tag" style={{ background: '#d9a441', padding: '1px 8px', borderRadius: 99, fontSize: '.75rem' }}>{e.dialect}</span>
             <small className="muted" style={{ display: 'block' }}>اقترحه {e.submittedBy?.name || '—'} · {langName(e.language)}</small>
             {e.examples?.[0] && <small className="muted">مثال: {e.examples[0]}</small>}
@@ -167,7 +167,7 @@ function Tickets() {
           {t.messageAr && t.language !== 'ar' && <details><summary className="muted">النص الأصلي</summary><p>{t.message}</p></details>}
           {t.reply && <div className="reply"><small>ردّك (يصل المستخدم بلغته)</small><p>{t.reply}</p></div>}
           <div className="row" style={{ flexWrap: 'wrap' }}>
-            <input className="input" style={{ flex: 1, minWidth: 200 }} placeholder="اكتب ردك بالعربية — يُترجم تلقائياً" value={reply[t._id] || ''} onChange={(e) => setReply((r) => ({ ...r, [t._id]: e.target.value }))} />
+            <input className="input" style={{ flex: 1, minWidth: 'min(200px, 100%)' }} placeholder="اكتب ردك بالعربية — يُترجم تلقائياً" value={reply[t._id] || ''} onChange={(e) => setReply((r) => ({ ...r, [t._id]: e.target.value }))} />
             <button className="btn small primary" disabled={!reply[t._id]?.trim()} onClick={() => act(t._id, { reply: reply[t._id] })}><Send /> رد</button>
             <button className="btn small ghost" onClick={() => act(t._id, { status: 'resolved' })}><Check /> تم الحل</button>
           </div>

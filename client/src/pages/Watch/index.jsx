@@ -68,7 +68,7 @@ export default function Watch() {
       {!loading && videos.length === 0 ? (
         <div className="card"><Empty icon={Clapperboard}>لا توجد فيديوهات بعد. يضيفها المشرفون من لوحة الإدارة.</Empty></div>
       ) : (
-        <div className="grid cols-3">
+        <div className="grid cols-3 video-grid">
           {videos.map((v) => (
             <button key={v._id} className="vcard" onClick={() => open(v._id)}>
               <Thumb v={v} />

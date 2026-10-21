@@ -55,7 +55,7 @@ export default function Dialects() {
           <Search size={18} style={{ position: 'absolute', top: 14, right: 14, color: '#8a8573' }} />
           <input className="input" style={{ paddingInlineStart: 42 }} placeholder="ابحث عن كلمة أو معنى…" value={q} onChange={(e) => setQ(e.target.value)} />
         </div>
-        <select className="select" style={{ width: 'auto', minWidth: 190 }} value={dialect} onChange={(e) => setDialect(e.target.value)} aria-label="المجموعة">
+        <select className="select" style={{ width: 'auto', minWidth: 'min(190px, 100%)' }} value={dialect} onChange={(e) => setDialect(e.target.value)} aria-label="المجموعة">
           <option value="">كل المجموعات</option>
           <GroupOptions groups={groups} />
         </select>
@@ -112,12 +112,12 @@ function Translator({ groups, onAddWord }) {
   return (
     <div className="card stack">
       <div className="row" style={{ flexWrap: 'wrap', alignItems: 'flex-end' }}>
-        <div className="field" style={{ minWidth: 200 }}>
+        <div className="field" style={{ minWidth: 'min(200px, 100%)' }}>
           <label htmlFor="dl">من الرطانة / اللهجة</label>
           <select id="dl" className="select" value={dialect} onChange={(e) => setDialect(e.target.value)}><GroupOptions groups={groups} /></select>
         </div>
         <LanguageSelect id="tl" label="إلى لغة" value={target} onChange={setTarget} />
-        <div className="field" style={{ minWidth: 170 }}>
+        <div className="field" style={{ minWidth: 'min(170px, 100%)' }}>
           <label htmlFor="td">وبلهجة (اختياري)</label>
           <select id="td" className="select" value={toDialect} onChange={(e) => setToDialect(e.target.value)}>
             <option value="">لغة قياسية</option>

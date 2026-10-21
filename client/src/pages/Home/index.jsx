@@ -1,8 +1,7 @@
 import { Link } from 'react-router-dom';
-import { Mic, Phone, MessageCircle, Clapperboard, BookA, LifeBuoy, ArrowLeftRight, Download, Share } from 'lucide-react';
+import { Mic, Phone, MessageCircle, Clapperboard, BookA, LifeBuoy, ArrowLeftRight } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { langName } from '../../lib/languages';
-import { useInstall } from '../../lib/pwa';
 import { PageHeader } from '../../components/ui';
 
 const tiles = [
@@ -16,20 +15,11 @@ const tiles = [
 
 export default function Home() {
   const { user } = useAuth();
-  const install = useInstall();
   const s = user.settings;
   return (
     <>
       <PageHeader eyebrow="CWW" title={`أهلاً ${user.name}`} subtitle="اختر الطريقة التي تريد التواصل بها اليوم." />
 
-      {!install.installed && (install.canPrompt || install.iosHint) && (
-        <div className="card install-banner">
-          <div><strong>ثبّت CWW على جهازك</strong><p className="muted">يعمل كتطبيق مستقل ويصلك إشعار المكالمات والرسائل.</p></div>
-          {install.canPrompt
-            ? <button className="btn primary" onClick={install.install}><Download /> تثبيت</button>
-            : <span className="chip"><Share size={14} /> مشاركة ← إضافة إلى الشاشة الرئيسية</span>}
-        </div>
-      )}
 
       <div className="card hero-card">
         <div><h2>تكلّم وافهم جميع لغات العالم</h2><p>لغتك ولغة المتكلم الآخر يمكن تغييرهما من الإعدادات.</p></div>

@@ -147,7 +147,7 @@ function Pair() {
     <section key={side} className={`card speaker${live === side ? ' live' : ''}`}>
       <div className="row between">
         <h2 style={{ fontSize: '1.1rem' }}>{title}</h2>
-        <div style={{ width: 200 }}><LanguageSelect value={lang[side]} onChange={(v) => { setLang((l) => ({ ...l, [side]: v })); setSuggest(null); }} id={`lang-${side}`} /></div>
+        <div className="lang-pick"><LanguageSelect value={lang[side]} onChange={(v) => { setLang((l) => ({ ...l, [side]: v })); setSuggest(null); }} id={`lang-${side}`} /></div>
       </div>
       <textarea
         className={`speaker-text textarea${text[side] ? '' : ' placeholder'}`}

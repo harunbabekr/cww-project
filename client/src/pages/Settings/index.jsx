@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { Save, LogOut, Mic, Square, Trash2, Bell, BellOff, Download, ShieldAlert, Share } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import api, { errMsg } from '../../services/api';
@@ -8,6 +9,7 @@ import { enablePush, disablePush, pushEnabled, pushSupported } from '../../lib/p
 import { getMic, recordClip, recordingSupported } from '../../lib/recorder';
 import { LanguageSelect, Toggle, PageHeader } from '../../components/ui';
 import AddContact from '../../components/AddContact';
+import { SECONDARY, ADMIN, isStaff } from '../../components/layout/nav';
 
 export default function Settings() {
   const { user, updateSettings, refresh, logout } = useAuth();
@@ -29,6 +31,15 @@ export default function Settings() {
   return (
     <>
       <PageHeader eyebrow="الإعدادات" title="إعدادات التطبيق" subtitle="تتحكم هذه الخيارات في لغات الترجمة والصوت والإشعارات." />
+      <div className="card more-card only-compact">
+        <h2 style={{ fontSize: '1.1rem' }}>المزيد من CWW</h2>
+        {[...SECONDARY, ...(isStaff(user) ? [ADMIN] : [])].map(({ path, name, text, icon: Icon }) => (
+          <Link key={path} to={path} className="more-item">
+            <span className="more-ico"><Icon /></span>
+            <span className="info"><strong>{name}</strong><small className="muted">{text}</small></span>
+          </Link>
+        ))}
+      </div>
       <div className="grid cols-2">
         <div className="card stack">
           <h2 style={{ fontSize: '1.1rem' }}>الحساب واللغات</h2>

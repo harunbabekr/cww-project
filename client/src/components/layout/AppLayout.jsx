@@ -1,6 +1,7 @@
 import { Navigate, Outlet } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import Sidebar from './Sidebar';
+import TabBar from './TabBar';
 import CallOverlay from '../CallOverlay';
 import RoomOverlay from '../RoomOverlay';
 
@@ -15,6 +16,7 @@ export default function AppLayout() {
           <Outlet />
         </div>
       </main>
+      <TabBar />
       <CallOverlay />
       <RoomOverlay />
     </div>

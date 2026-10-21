@@ -33,13 +33,13 @@ export function Toggle({ checked, onChange, label, hint }) {
 
 export function PageHeader({ eyebrow, title, subtitle, children }) {
   return (
-    <header className="page-head row between" style={{ alignItems: 'flex-end', flexWrap: 'wrap' }}>
-      <div>
+    <header className="page-head">
+      <div className="page-head-text">
         {eyebrow && <span className="eyebrow">{eyebrow}</span>}
         <h1>{title}</h1>
         {subtitle && <p>{subtitle}</p>}
       </div>
-      {children}
+      {children && <div className="page-actions">{children}</div>}
     </header>
   );
 }

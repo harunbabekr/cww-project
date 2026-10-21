@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Phone, Video, UserPlus, Trash2, Users, LoaderCircle, MessageCircle, PhoneIncoming, PhoneOutgoing, PhoneMissed, PencilLine, Link2, Check } from 'lucide-react';
+import { Phone, Video, UserPlus, Trash2, Users, LoaderCircle, MessageCircle, PhoneIncoming, PhoneOutgoing, PhoneMissed, PencilLine, Link2, Check, Ellipsis } from 'lucide-react';
 import api, { errMsg } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import { useCall } from '../../context/CallContext';
@@ -31,6 +31,7 @@ export default function Calls() {
   const [dialBusy, setDialBusy] = useState(false);
   const [missing, setMissing] = useState(false);
   const [editing, setEditing] = useState(null);
+  const [menu, setMenu] = useState(null);
 
   const load = useCallback(async () => {
     try { setContacts((await api.get('/contacts')).data.contacts); }
@@ -91,9 +92,9 @@ export default function Calls() {
       <div className="card stack" style={{ marginBottom: 16 }}>
         <strong>اتصل برقم مباشرة</strong>
         <div className="row">
-          <input className="input ltr" inputMode="tel" placeholder="0912345678 أو +249912345678" value={number} onChange={(e) => { setNumber(e.target.value); setMissing(false); }} />
-          <button className="btn small ghost" disabled={!idle || dialBusy || number.trim().length < 6} onClick={() => dial(false)} aria-label="صوتية">{dialBusy ? <LoaderCircle className="spin" /> : <Phone />}</button>
-          <button className="btn small primary" disabled={!idle || dialBusy || number.trim().length < 6} onClick={() => dial(true)} aria-label="فيديو"><Video /></button>
+          <input className="input ltr" inputMode="tel" placeholder="0912345678" value={number} onChange={(e) => { setNumber(e.target.value); setMissing(false); }} />
+          <button className="btn icon ghost" disabled={!idle || dialBusy || number.trim().length < 6} onClick={() => dial(false)} aria-label="صوتية">{dialBusy ? <LoaderCircle className="spin" /> : <Phone />}</button>
+          <button className="btn icon primary" disabled={!idle || dialBusy || number.trim().length < 6} onClick={() => dial(true)} aria-label="فيديو"><Video /></button>
         </div>
         {missing && (
           <div className="alert info row between" style={{ flexWrap: 'wrap', gap: 8 }}>
@@ -149,13 +150,18 @@ export default function Calls() {
                   )}
                 </div>
                 {!groupMode && (
-                  <>
-                    <button className="btn small ghost" onClick={() => openChat(c.user.id)} aria-label="مراسلة"><MessageCircle /></button>
-                    <button className="btn small ghost" disabled={!idle} onClick={() => call.startCall(c.user, false)} aria-label="مكالمة صوتية"><Phone /></button>
-                    <button className="btn small primary" disabled={!idle} onClick={() => call.startCall(c.user, true)} aria-label="مكالمة فيديو"><Video /></button>
-                    <button className="btn small ghost" onClick={() => setEditing(c.id)} aria-label="تعديل الاسم"><PencilLine /></button>
-                    <button className="btn small ghost" onClick={() => remove(c.id)} aria-label="حذف"><Trash2 /></button>
-                  </>
+                  <div className="actions">
+                    <button className="btn icon ghost" onClick={() => openChat(c.user.id)} aria-label="مراسلة"><MessageCircle /></button>
+                    <button className="btn icon ghost" disabled={!idle} onClick={() => call.startCall(c.user, false)} aria-label="مكالمة صوتية"><Phone /></button>
+                    <button className="btn icon primary" disabled={!idle} onClick={() => call.startCall(c.user, true)} aria-label="مكالمة فيديو"><Video /></button>
+                    <button className="btn icon ghost" onClick={() => setMenu(menu === c.id ? null : c.id)} aria-label="المزيد" aria-expanded={menu === c.id}><Ellipsis /></button>
+                  </div>
+                )}
+                {!groupMode && menu === c.id && (
+                  <div className="contact-menu">
+                    <button className="btn small ghost" onClick={() => { setEditing(c.id); setMenu(null); }}><PencilLine /> تعديل الاسم</button>
+                    <button className="btn small ghost danger" onClick={() => { setMenu(null); remove(c.id); }}><Trash2 /> حذف</button>
+                  </div>
                 )}
               </div>
             ))}
@@ -177,7 +183,7 @@ export default function Calls() {
                       <strong style={{ color: h.missed ? '#c0392b' : undefined }}>{title}</strong>
                       <small className="muted" style={{ display: 'block' }}>{sub && <span className="ltr" style={{ direction: 'ltr', display: 'inline-block', marginInlineEnd: 8 }}>{sub}</span>}{fmtWhen(h.startedAt)}{h.duration ? ` · ${fmtDur(h.duration)}` : ''}{h.video ? ' · فيديو' : ''}</small>
                     </div>
-                    {h.peer && <button className="btn small ghost" disabled={!idle} onClick={() => call.startCall(h.peer, h.video)} aria-label="معاودة الاتصال"><Phone /></button>}
+                    {h.peer && <button className="btn icon ghost" disabled={!idle} onClick={() => call.startCall(h.peer, h.video)} aria-label="معاودة الاتصال"><Phone /></button>}
                   </div>
                 );
               })}

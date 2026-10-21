@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useLocation } from 'react-router-dom';
-import { Send, Plus, MessageCircle, Users, X, Volume2, Phone, Video, Mic, Square, UserPlus, LogOut, LoaderCircle } from 'lucide-react';
+import { Send, Plus, MessageCircle, Users, X, Volume2, Phone, Video, Mic, Square, UserPlus, LogOut, LoaderCircle, ArrowRight } from 'lucide-react';
 import { say } from '../../lib/audio';
 import { useAuth } from '../../context/AuthContext';
 import { useCall } from '../../context/CallContext';
@@ -77,6 +77,12 @@ export default function Chat() {
     return () => { socket.off('chat:message', onMessage); socket.off('chat:typing', onTyping); };
   }, [socket, user.id, loadConvs]);
 
+  // في الجوال تُعرض المحادثة بملء الشاشة (يخفي الشريط السفلي عبر CSS)
+  useEffect(() => {
+    document.body.classList.toggle('chat-open', !!activeId);
+    return () => document.body.classList.remove('chat-open');
+  }, [activeId]);
+
   useEffect(() => { endRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages]);
   useEffect(() => () => { recogRef.current?.stop(); streamRef.current?.getTracks().forEach((t) => t.stop()); }, []);
 
@@ -151,13 +157,19 @@ export default function Chat() {
     );
   };
 
-  return (
+  const alerts = (
     <>
-      <PageHeader eyebrow="دردشة الرسائل" title="الرسائل" subtitle="تكتب بلغتك ويقرأ كل شخص بلغته." />
-      {error && <div className="alert error" style={{ marginBottom: 12 }}>{error} <button onClick={() => setError('')} aria-label="إغلاق"><X size={14} /></button></div>}
-      {call.error && <div className="alert error" style={{ marginBottom: 12 }}>{call.error}</div>}
+      {error && <div className="alert error row between chat-alert"><span>{error}</span><button onClick={() => setError('')} aria-label="إغلاق"><X size={16} /></button></div>}
+      {call.error && <div className="alert error chat-alert">{call.error}</div>}
+    </>
+  );
 
-      <div className="chat">
+  return (
+    <div className={`chat-page${active ? ' in-thread' : ''}`}>
+      <PageHeader eyebrow="دردشة الرسائل" title="الرسائل" subtitle="تكتب بلغتك ويقرأ كل شخص بلغته." />
+      {!active && alerts}
+
+      <div className={`chat${active ? ' show-thread' : ''}`}>
         <aside className="card chat-list">
           <div className="chat-list-head">
             <button className="btn primary" style={{ width: '100%' }} onClick={() => setPicker(true)}><Plus /> محادثة جديدة</button>
@@ -178,30 +190,36 @@ export default function Chat() {
             <Empty icon={MessageCircle}>اختر محادثة أو ابدأ واحدة جديدة</Empty>
           ) : (
             <>
-              <div className="thread-head row between">
-                <div className="row">
-                  <Avatar name={active.name} />
-                  <div><strong>{active.name}</strong>{active.isGroup && <small className="muted" style={{ display: 'block' }}>{active.members.length} أعضاء</small>}</div>
+              <div className="thread-head">
+                <button className="btn icon ghost chat-back" onClick={() => setActiveId(null)} aria-label="رجوع إلى المحادثات"><ArrowRight /></button>
+                <Avatar name={active.name} />
+                <div className="info">
+                  <strong>{active.name}</strong>
+                  {active.isGroup && <small className="muted">{active.members.length} أعضاء</small>}
                 </div>
-                <div className="row">
-                  <button className="btn small ghost" disabled={!idle || !others.length} onClick={() => callChat(false)} aria-label="مكالمة صوتية"><Phone /></button>
-                  <button className="btn small ghost" disabled={!idle || !others.length} onClick={() => callChat(true)} aria-label="مكالمة فيديو"><Video /></button>
-                  {active.isGroup && <button className="btn small ghost" onClick={() => setMembers(true)} aria-label="الأعضاء"><Users /></button>}
+                <div className="thread-actions">
+                  <button className="btn icon ghost" disabled={!idle || !others.length} onClick={() => callChat(false)} aria-label="مكالمة صوتية"><Phone /></button>
+                  <button className="btn icon ghost" disabled={!idle || !others.length} onClick={() => callChat(true)} aria-label="مكالمة فيديو"><Video /></button>
+                  {active.isGroup && <button className="btn icon ghost" onClick={() => setMembers(true)} aria-label="الأعضاء"><Users /></button>}
                 </div>
               </div>
+              {alerts}
               <div className="messages">{messages.map(render)}<div ref={endRef} /></div>
               <div className="typing">{typing}</div>
               <form className="composer" onSubmit={send}>
-                <select className="select" style={{ width: 110, flex: '0 0 auto' }} value={sendLang} onChange={(e) => setSendLang(e.target.value)} aria-label="لغة الكتابة" title="لغة كتابتك">
-                  <LangOptions />
-                </select>
-                <input className="input" value={text} onChange={onType} placeholder={dictating ? 'جارٍ الاستماع…' : 'اكتب رسالتك بلغتك…'} maxLength={4000} />
-                {canDictate && (
-                  <button type="button" className={`btn ghost${dictating ? ' off' : ''}`} onClick={dictate} disabled={transcribing} aria-label="إملاء صوتي">
-                    {transcribing ? <LoaderCircle className="spin" /> : dictating ? <Square /> : <Mic />}
-                  </button>
-                )}
-                <button className="btn primary" disabled={!text.trim()} aria-label="إرسال"><Send /></button>
+                <div className="composer-row">
+                  <input className="input" value={text} onChange={onType} placeholder={dictating ? 'جارٍ الاستماع…' : 'اكتب رسالتك…'} maxLength={4000} enterKeyHint="send" autoComplete="off" />
+                  {canDictate && (
+                    <button type="button" className={`btn icon ghost${dictating ? ' off' : ''}`} onClick={dictate} disabled={transcribing} aria-label="إملاء صوتي">
+                      {transcribing ? <LoaderCircle className="spin" /> : dictating ? <Square /> : <Mic />}
+                    </button>
+                  )}
+                  <button className="btn icon primary" disabled={!text.trim()} aria-label="إرسال"><Send /></button>
+                </div>
+                <label className="composer-lang">
+                  <span>أكتب بلغة</span>
+                  <select className="select" value={sendLang} onChange={(e) => setSendLang(e.target.value)} aria-label="لغة الكتابة"><LangOptions /></select>
+                </label>
               </form>
             </>
           )}
@@ -214,7 +232,7 @@ export default function Chat() {
         setPicker(false);
       }} />}
       {members && active && <GroupMembers conv={active} me={user.id} onClose={() => setMembers(false)} onUpdated={(c) => setConvs((p) => p.map((x) => (x.id === c.id ? c : x)))} onLeft={() => { setMembers(false); setActiveId(null); loadConvs(); }} />}
-    </>
+    </div>
   );
 }
 
