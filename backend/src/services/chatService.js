@@ -45,12 +45,14 @@ export async function saveAndTranslateMessage({ conversationId, senderId, text, 
   const message = await Message.create({ conversation: conv._id, sender: senderId, originalText: clean, sourceLanguage: from, translations });
   conv.lastMessage = clean.slice(0, 120);
   conv.lastMessageAt = new Date();
+  conv.lastSender = senderId;
   await conv.save();
 
   return {
     message: toPayload(message),
     senderName: sender.name,
     conversationName: conv.isGroup ? conv.name : sender.name,
+    memberIds: members.map((m) => String(m._id)),
     recipients: members.filter((m) => String(m._id) !== String(senderId)).map((m) => ({ id: String(m._id), lang: m.settings.speakLanguage })),
   };
 }

@@ -18,10 +18,16 @@ export default (io, socket) => {
 
   socket.on('chat:send', async ({ conversationId, text, language }, ack) => {
     try {
-      const { message, recipients, senderName, conversationName } = await saveAndTranslateMessage({
+      const { message, recipients, senderName, conversationName, memberIds } = await saveAndTranslateMessage({
         conversationId, senderId: socket.user.id, text, sourceLanguage: language,
       });
       io.to(`conv:${conversationId}`).emit('chat:message', message);
+      // تحديث لحظي لقائمة المحادثات (آخر رسالة + غير مقروء) لكل الأعضاء حتى لو لم يفتحوا المحادثة
+      for (const id of memberIds) {
+        io.to(`user:${id}`).emit('chat:activity', {
+          conversationId: String(conversationId), lastMessage: message.originalText.slice(0, 120), lastMessageAt: message.createdAt, sender: String(socket.user.id),
+        });
+      }
       // إشعار لمن لا يشاهد المحادثة حالياً (التطبيق مغلق أو في صفحة أخرى)
       for (const r of recipients) {
         const watching = (await io.in(`conv:${conversationId}`).fetchSockets()).some((s) => s.user.id === r.id);

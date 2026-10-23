@@ -1,5 +1,5 @@
 /* CWW service worker — الواجهة تعمل دون اتصال، أما الـ API والسوكت فمن الشبكة دائماً */
-const VERSION = 'cww-v4';
+const VERSION = 'cww-v5';
 const SHELL = ['/', '/index.html', '/offline.html', '/manifest.webmanifest', '/favicon.svg', '/icons/icon-192.png'];
 
 self.addEventListener('install', (e) => {

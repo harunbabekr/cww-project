@@ -18,6 +18,7 @@ const shapeConversation = (c, meId) => ({
   members: c.members.map((m) => ({ id: m._id, name: m.name, phone: m.fullPhone, speakLanguage: m.settings?.speakLanguage, online: isOnline(String(m._id)) })),
   lastMessage: c.lastMessage,
   lastMessageAt: c.lastMessageAt,
+  lastSender: c.lastSender,
 });
 
 // POST /conversations { userId } أو { memberIds: [], name } لمجموعة

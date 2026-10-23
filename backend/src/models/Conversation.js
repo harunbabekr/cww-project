@@ -7,6 +7,7 @@ const conversationSchema = new mongoose.Schema(
     name: { type: String, trim: true },
     lastMessage: { type: String, default: '' },
     lastMessageAt: { type: Date, default: Date.now },
+    lastSender: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   },
   { timestamps: true }
 );

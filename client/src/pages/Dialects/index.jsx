@@ -1,28 +1,19 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Search, Plus, CircleCheck, BookA, Languages, LoaderCircle, Clock, Sparkles, TriangleAlert } from 'lucide-react';
+import { Search, Plus, PencilLine, CircleCheck, BookA, Languages, LoaderCircle, Clock, Sparkles, TriangleAlert } from 'lucide-react';
 import api, { errMsg } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import { LanguageSelect, PageHeader, Empty } from '../../components/ui';
-
-export const CATEGORY_LABELS = {
-  tribal: 'لغات ورطانات السودان',
-  sudanese_arabic: 'اللهجات العربية السودانية',
-  other_arabic: 'لهجات عربية أخرى',
-};
-const ORDER = ['tribal', 'sudanese_arabic', 'other_arabic'];
-
-function GroupOptions({ groups }) {
-  return ORDER.map((cat) => {
-    const list = groups.filter((g) => g.category === cat);
-    return list.length ? <optgroup key={cat} label={CATEGORY_LABELS[cat]}>{list.map((g) => <option key={g.name} value={g.name}>{g.name}{g.count ? ` (${g.count})` : ''}</option>)}</optgroup> : null;
-  });
-}
+import EntryEditor from '../../components/EntryEditor';
+import { GroupOptions } from '../../lib/dialectUi';
 
 export default function Dialects() {
   const [q, setQ] = useState('');
   const [dialect, setDialect] = useState('');
   const [groups, setGroups] = useState([]);
   const [entries, setEntries] = useState([]);
+  const { user } = useAuth();
+  const staff = ['admin', 'moderator'].includes(user.role);
+  const [editing, setEditing] = useState(null);
   const [adding, setAdding] = useState(null); // { word?, dialect? }
   const [toast, setToast] = useState('');
   const [error, setError] = useState('');
@@ -73,7 +64,12 @@ export default function Dialects() {
         <div className="grid cols-3">
           {entries.map((e) => (
             <article key={e._id} className="card entry">
-              <div className="row between"><h3>{e.word}</h3><span className="tag">{e.dialect}</span></div>
+              <div className="row between"><h3>{e.word}</h3>
+                <span className="row" style={{ gap: 6 }}>
+                  <span className="tag">{e.dialect}</span>
+                  {(staff || (e.status !== 'approved' && String(e.submittedBy) === user.id)) && <button className="btn icon small ghost" onClick={() => setEditing(e)} aria-label="تعديل أو حذف"><PencilLine /></button>}
+                </span>
+              </div>
               <p>{e.standardMeaning}</p>
               {e.variants?.length > 0 && <small className="muted">وتُكتب أيضاً: {e.variants.join('، ')}</small>}
               <div>{e.status === 'approved'
@@ -85,6 +81,9 @@ export default function Dialects() {
         </div>
       )}
 
+      {editing && <EntryEditor entry={editing} groups={groups} staff={staff} onClose={() => setEditing(null)}
+        onSaved={(en) => { setEntries((l) => l.map((x) => (x._id === en._id ? { ...x, ...en } : x))); setEditing(null); setToast('تم حفظ التعديل'); loadGroups(); }}
+        onDeleted={(id) => { setEntries((l) => l.filter((x) => x._id !== id)); setEditing(null); setToast('تم الحذف'); loadGroups(); }} />}
       {adding && <AddEntry groups={groups} preset={adding} onClose={() => setAdding(null)} onDone={(msg) => { setAdding(null); setToast(msg); loadGroups(); search(); }} />}
     </>
   );

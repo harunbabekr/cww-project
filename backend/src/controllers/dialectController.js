@@ -1,3 +1,4 @@
+import mongoose from 'mongoose';
 import DialectDictionary from '../models/DialectDictionary.js';
 import DialectGroup from '../models/DialectGroup.js';
 import { AppError } from '../middlewares/errorHandler.js';
@@ -113,10 +114,78 @@ export const reviewEntry = async (req, res) => {
   res.json({ success: true, entry });
 };
 
+const listOf = (v, max) => (Array.isArray(v) ? v : String(v ?? '').split(/[,،\n]/)).map((x) => String(x).trim()).filter(Boolean).slice(0, max);
+
+// صلاحية التعديل/الحذف: المشرف دائماً، وصاحب الاقتراح ما دام لم يُعتمد بعد
+async function loadEditable(req) {
+  const entry = await DialectDictionary.findById(req.params.id);
+  if (!entry) throw new AppError('المصطلح غير موجود', 404);
+  const owner = String(entry.submittedBy) === String(req.user._id) && entry.status !== 'approved';
+  if (!isStaff(req.user) && !owner) throw new AppError('لا تملك صلاحية تعديل هذا المصطلح', 403);
+  return entry;
+}
+
+// GET /dialects/entries?dialect=&q=&status=&page=&limit=   (للمشرفين) — كل المصطلحات مع ترقيم صفحات
+export const listEntries = async (req, res) => {
+  const { dialect, q, status } = req.query;
+  const limit = Math.min(Math.max(Number(req.query.limit) || 30, 1), 100);
+  const page = Math.max(Number(req.query.page) || 1, 1);
+  const filter = {};
+  if (dialect) filter.dialect = String(dialect);
+  if (['approved', 'pending', 'rejected'].includes(status)) filter.status = status;
+  if (q) {
+    const raw = escapeRegex(String(q).slice(0, 60));
+    const n = escapeRegex(normalizePhrase(String(q).slice(0, 60)));
+    filter.$or = [{ word: new RegExp(raw, 'i') }, { norm: new RegExp(n || raw) }, { variantNorms: new RegExp(n || raw) }, { standardMeaning: new RegExp(raw, 'i') }];
+  }
+  const [entries, total] = await Promise.all([
+    DialectDictionary.find(filter).populate('submittedBy', 'name').sort({ updatedAt: -1 }).skip((page - 1) * limit).limit(limit).lean(),
+    DialectDictionary.countDocuments(filter),
+  ]);
+  res.json({ success: true, entries, total, page, pages: Math.max(Math.ceil(total / limit), 1) });
+};
+
+// PATCH /dialects/:id { word?, standardMeaning?, variants?, examples?, dialect?*, status?* }  (*للمشرفين فقط)
+export const updateEntry = async (req, res) => {
+  const entry = await loadEditable(req);
+  const b = req.body;
+  const staff = isStaff(req.user);
+
+  if (typeof b.word === 'string') { if (!b.word.trim()) throw new AppError('الكلمة مطلوبة', 400); entry.word = b.word.trim(); }
+  if (typeof b.standardMeaning === 'string') { if (!b.standardMeaning.trim()) throw new AppError('المعنى مطلوب', 400); entry.standardMeaning = b.standardMeaning.trim(); }
+  if (b.variants !== undefined) entry.variants = listOf(b.variants, 8);
+  if (b.examples !== undefined) entry.examples = listOf(b.examples, 5);
+  if (staff && typeof b.dialect === 'string' && b.dialect.trim() && b.dialect.trim() !== entry.dialect) {
+    const g = await requireGroup(b.dialect.trim());
+    entry.dialect = g.name;
+    entry.language = g.mtLanguage || (g.category === 'tribal' ? g.code || 'und' : 'ar');
+  }
+  if (staff && ['pending', 'approved', 'rejected'].includes(b.status)) { entry.status = b.status; entry.reviewedBy = req.user._id; }
+  // تعديل صاحب الاقتراح لا يُنقص مراجعته: يبقى بانتظار المراجعة
+  if (!staff) entry.status = 'pending';
+
+  try { await entry.save(); } catch (e) {
+    if (e.code === 11000) throw new AppError('هذه الكلمة موجودة بالفعل في المجموعة نفسها', 409);
+    throw e;
+  }
+  clearGlossaryCache();
+  res.json({ success: true, entry });
+};
+
 export const deleteEntry = async (req, res) => {
-  await DialectDictionary.deleteOne({ _id: req.params.id });
+  const entry = await loadEditable(req);
+  await entry.deleteOne();
   clearGlossaryCache();
   res.json({ success: true });
+};
+
+// POST /dialects/bulk-delete { ids: [] }  (للمشرفين) — حذف عدة مصطلحات معاً (تنظيف استيراد خاطئ)
+export const bulkDelete = async (req, res) => {
+  const ids = (Array.isArray(req.body.ids) ? req.body.ids : []).filter((x) => mongoose.isValidObjectId(x)).slice(0, 500);
+  if (!ids.length) throw new AppError('لم يُحدَّد أي مصطلح', 400);
+  const r = await DialectDictionary.deleteMany({ _id: { $in: ids } });
+  clearGlossaryCache();
+  res.json({ success: true, deleted: r.deletedCount });
 };
 
 // ---- إدارة المجموعات ----
@@ -138,15 +207,32 @@ export const createGroup = async (req, res) => {
 };
 
 export const updateGroup = async (req, res) => {
-  const group = await DialectGroup.findByIdAndUpdate(req.params.id, groupBody(req.body), { new: true });
-  if (!group) throw new AppError('المجموعة غير موجودة', 404);
+  const old = await DialectGroup.findById(req.params.id);
+  if (!old) throw new AppError('المجموعة غير موجودة', 404);
+  const body = groupBody(req.body);
+  if (body.name !== undefined && !body.name) throw new AppError('اسم المجموعة مطلوب', 400);
+  if (body.name && body.name !== old.name && (await DialectGroup.exists({ name: body.name }))) throw new AppError('يوجد مجموعة بهذا الاسم', 409);
+
+  const group = await DialectGroup.findByIdAndUpdate(req.params.id, body, { new: true });
+  // المصطلحات مرتبطة باسم المجموعة: عند إعادة التسمية ننقلها كي لا تصبح يتيمة
+  const patch = {};
+  if (body.name && body.name !== old.name) patch.dialect = body.name;
+  if (body.mtLanguage !== undefined || body.code !== undefined || body.category !== undefined) {
+    patch.language = group.mtLanguage || (group.category === 'tribal' ? group.code || 'und' : 'ar');
+  }
+  if (Object.keys(patch).length) await DialectDictionary.updateMany({ dialect: old.name }, { $set: patch });
+  clearGlossaryCache();
   res.json({ success: true, group });
 };
 
 export const deleteGroup = async (req, res) => {
   const group = await DialectGroup.findById(req.params.id);
   if (!group) throw new AppError('المجموعة غير موجودة', 404);
-  if (await DialectDictionary.exists({ dialect: group.name })) throw new AppError('لا يمكن حذف مجموعة فيها مصطلحات (عطّلها بدلاً من ذلك)', 400);
+  const has = await DialectDictionary.countDocuments({ dialect: group.name });
+  if (has && req.query.cascade !== '1') throw new AppError(`المجموعة فيها ${has} مصطلح. عطّلها بدلاً من حذفها، أو احذفها مع مصطلحاتها.`, 409);
+  if (has && req.user.role !== 'admin') throw new AppError('حذف مجموعة مع مصطلحاتها للمدير فقط', 403);
+  if (has) await DialectDictionary.deleteMany({ dialect: group.name });
   await group.deleteOne();
-  res.json({ success: true });
+  clearGlossaryCache();
+  res.json({ success: true, deleted: has });
 };

@@ -5,11 +5,13 @@ import api, { errMsg } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import { useFeatures } from '../../lib/features';
 import { langName } from '../../lib/languages';
-import { LanguageSelect, PageHeader, Empty } from '../../components/ui';
+import { LanguageSelect, PageHeader, Empty, ConfirmButton } from '../../components/ui';
+import { DialectReview, EntriesManager, Groups } from './DialectAdmin';
 
 const TABS = [
-  { id: 'dialects', label: 'مراجعة اللهجات', icon: BookA },
-  { id: 'groups', label: 'قاموس الرطانات', icon: BookA },
+  { id: 'dialects', label: 'مراجعة الاقتراحات', icon: Check },
+  { id: 'entries', label: 'المصطلحات', icon: BookA },
+  { id: 'groups', label: 'الرطانات واللهجات', icon: Languages },
   { id: 'tickets', label: 'رسائل المستخدمين', icon: Inbox },
   { id: 'videos', label: 'الفيديوهات والدبلجة', icon: Film },
   { id: 'users', label: 'المستخدمون', icon: Users, adminOnly: true },
@@ -18,6 +20,7 @@ const TABS = [
 export default function Admin() {
   const { user } = useAuth();
   const [tab, setTab] = useState('dialects');
+  const [entryFilter, setEntryFilter] = useState({});
   const [stats, setStats] = useState(null);
   const isStaff = ['admin', 'moderator'].includes(user.role);
 
@@ -29,115 +32,22 @@ export default function Admin() {
     <>
       <PageHeader eyebrow="الإدارة" title="لوحة الإدارة" subtitle={user.role === 'admin' ? 'صلاحيات كاملة' : 'صلاحيات مشرف'} />
       {stats && (
-        <div className="grid cols-3" style={{ marginBottom: 16 }}>
+        <div className="stats">
           <div className="card"><small className="muted">مستخدمون</small><h2>{stats.users}</h2></div>
-          <div className="card"><small className="muted">اقتراحات لهجات بانتظار المراجعة</small><h2>{stats.pendingDialects}</h2></div>
+          <div className="card"><small className="muted">اقتراحات معلّقة</small><h2>{stats.pendingDialects}</h2></div>
           <div className="card"><small className="muted">رسائل مفتوحة</small><h2>{stats.openTickets}</h2></div>
         </div>
       )}
-      <div className="chips" style={{ marginBottom: 16 }}>
-        {tabs.map(({ id, label, icon: Icon }) => <button key={id} className={`chip${tab === id ? ' active' : ''}`} onClick={() => setTab(id)}><Icon size={14} /> {label}</button>)}
+      <div className="chips scroll" style={{ marginBottom: 16 }}>
+        {tabs.map(({ id, label, icon: Icon }) => <button key={id} className={`chip${tab === id ? ' active' : ''}`} onClick={() => { if (id === 'entries') setEntryFilter({}); setTab(id); }}><Icon size={14} /> {label}</button>)}
       </div>
       {tab === 'dialects' && <DialectReview />}
-      {tab === 'groups' && <Groups />}
+      {tab === 'entries' && <EntriesManager key={entryFilter.dialect || 'all'} initial={entryFilter} />}
+      {tab === 'groups' && <Groups me={user} onOpenEntries={(d) => { setEntryFilter({ dialect: d }); setTab('entries'); }} />}
       {tab === 'tickets' && <Tickets />}
       {tab === 'videos' && <Videos />}
       {tab === 'users' && <UsersTab me={user} />}
     </>
-  );
-}
-
-function DialectReview() {
-  const [items, setItems] = useState([]);
-  const [meaning, setMeaning] = useState({});
-  const [error, setError] = useState('');
-  const load = useCallback(() => api.get('/dialects/pending').then((r) => setItems(r.data.entries)).catch((e) => setError(errMsg(e))), []);
-  useEffect(() => { load(); }, [load]);
-
-  const review = async (id, status) => {
-    try { await api.patch(`/dialects/${id}/review`, { status, standardMeaning: meaning[id] }); setItems((x) => x.filter((e) => e._id !== id)); }
-    catch (e) { setError(errMsg(e)); }
-  };
-
-  return (
-    <div className="card">
-      {error && <div className="alert error">{error}</div>}
-      {items.length === 0 ? <Empty icon={Check}>لا توجد اقتراحات بانتظار المراجعة</Empty> : items.map((e) => (
-        <div key={e._id} className="contact-item" style={{ flexWrap: 'wrap' }}>
-          <div className="info" style={{ minWidth: 'min(220px, 100%)' }}>
-            <strong>{e.word}</strong> <span className="tag" style={{ background: '#d9a441', padding: '1px 8px', borderRadius: 99, fontSize: '.75rem' }}>{e.dialect}</span>
-            <small className="muted" style={{ display: 'block' }}>اقترحه {e.submittedBy?.name || '—'} · {langName(e.language)}</small>
-            {e.examples?.[0] && <small className="muted">مثال: {e.examples[0]}</small>}
-          </div>
-          <input className="input" style={{ maxWidth: 260 }} defaultValue={e.standardMeaning} onChange={(ev) => setMeaning((m) => ({ ...m, [e._id]: ev.target.value }))} aria-label="المعنى" />
-          <button className="btn small primary" onClick={() => review(e._id, 'approved')}><Check /> اعتماد</button>
-          <button className="btn small ghost" onClick={() => review(e._id, 'rejected')}><X /> رفض</button>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-const CAT = { tribal: 'لغة / رطانة', sudanese_arabic: 'لهجة عربية سودانية', other_arabic: 'لهجة عربية أخرى' };
-
-function Groups() {
-  const [groups, setGroups] = useState([]);
-  const [f, setF] = useState({ name: '', nameEn: '', code: '', category: 'tribal', region: '' });
-  const [bulk, setBulk] = useState({ dialect: '', text: '' });
-  const [result, setResult] = useState(null);
-  const [error, setError] = useState('');
-  const [busy, setBusy] = useState(false);
-  const set = (k) => (e) => setF((x) => ({ ...x, [k]: e.target.value }));
-
-  const load = useCallback(() => api.get('/dialects', { params: { all: 1 } }).then((r) => setGroups(r.data.dialects)).catch((e) => setError(errMsg(e))), []);
-  useEffect(() => { load(); }, [load]);
-
-  const addGroup = async (e) => {
-    e.preventDefault(); setError('');
-    try { await api.post('/dialects/groups', f); setF({ name: '', nameEn: '', code: '', category: 'tribal', region: '' }); load(); } catch (err) { setError(errMsg(err)); }
-  };
-  const toggle = async (g) => { if (g._id) { await api.patch(`/dialects/groups/${g._id}`, { active: !g.active }); load(); } };
-  const doBulk = async () => {
-    setBusy(true); setError(''); setResult(null);
-    try { const { data } = await api.post('/dialects/bulk', bulk); setResult(data); setBulk((b) => ({ ...b, text: '' })); load(); } catch (err) { setError(errMsg(err)); } finally { setBusy(false); }
-  };
-
-  return (
-    <div className="stack">
-      {error && <div className="alert error">{error}</div>}
-      <div className="card stack">
-        <h2 style={{ fontSize: '1.1rem' }}>استيراد جماعي للمفردات</h2>
-        <p className="muted" style={{ fontSize: '.88rem' }}>الصق مفردات من متحدثين أصليين، كل سطر: <b>الكلمة | المعنى بالعربية | تهجئات أخرى (اختياري)</b>. تُعتمد مباشرة. اجعل متحدثاً أصلياً يراجعها قبل الاعتماد الواسع.</p>
-        <select className="select" value={bulk.dialect} onChange={(e) => setBulk((b) => ({ ...b, dialect: e.target.value }))}>
-          <option value="">اختر المجموعة…</option>
-          {groups.map((g) => <option key={g.name} value={g.name}>{g.name} ({g.count})</option>)}
-        </select>
-        <textarea className="textarea ltr" style={{ minHeight: 140, direction: 'rtl' }} placeholder={'كلمة | معناها\nكلمة أخرى | معناها | تهجئة بديلة'} value={bulk.text} onChange={(e) => setBulk((b) => ({ ...b, text: e.target.value }))} />
-        <button className="btn primary" style={{ alignSelf: 'flex-start' }} disabled={busy || !bulk.dialect || !bulk.text.trim()} onClick={doBulk}>{busy ? <LoaderCircle className="spin" /> : <Plus />} استيراد</button>
-        {result && <div className="alert info">أُضيف {result.added} · مكرر {result.skipped}{result.errors?.length ? ` · أخطاء: ${result.errors.join('، ')}` : ''}</div>}
-      </div>
-
-      <form className="card stack" onSubmit={addGroup}>
-        <h2 style={{ fontSize: '1.1rem' }}>إضافة رطانة / لهجة جديدة</h2>
-        <div className="grid cols-2">
-          <input className="input" placeholder="الاسم بالعربية (مثال: القمر)" value={f.name} onChange={set('name')} required />
-          <input className="input ltr" placeholder="الاسم بالإنجليزية (اختياري)" value={f.nameEn} onChange={set('nameEn')} />
-          <select className="select" value={f.category} onChange={set('category')}>{Object.entries(CAT).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select>
-          <input className="input" placeholder="المنطقة (اختياري)" value={f.region} onChange={set('region')} />
-        </div>
-        <button className="btn" style={{ alignSelf: 'flex-start' }}><Plus /> إضافة</button>
-      </form>
-
-      <div className="card">
-        {groups.map((g) => (
-          <div key={g.name} className="contact-item">
-            <div className="info"><strong>{g.name}</strong> <small className="muted">{CAT[g.category]}{g.region ? ` · ${g.region}` : ''}</small></div>
-            <span className="chip">{g.count} مصطلح</span>
-            {g._id && <button className="btn small ghost" onClick={() => toggle(g)}>{g.active === false ? 'تفعيل' : 'تعطيل'}</button>}
-          </div>
-        ))}
-      </div>
-    </div>
   );
 }
 
@@ -207,7 +117,7 @@ function Videos() {
     setError(''); setInfo('');
     try { await api.post(`/watch/${id}/dub`, { language: lang }); setInfo('بدأت المعالجة، قد تستغرق دقائق حسب طول الفيديو.'); loadJobs(id); } catch (err) { setError(errMsg(err)); }
   };
-  const remove = async (id) => { if (confirm('حذف الفيديو؟')) { await api.delete(`/watch/${id}`); load(); } };
+  const remove = async (id) => { try { await api.delete(`/watch/${id}`); load(); } catch (e) { setError(errMsg(e)); } };
 
   return (
     <div className="stack">
@@ -239,7 +149,7 @@ function Videos() {
               <div><strong>{v.title}</strong><small className="muted" style={{ display: 'block' }}>{langName(v.originalLanguage)} · لغات جاهزة: {v.languages?.length ? v.languages.map(langName).join('، ') : 'لا شيء'}</small></div>
               <div className="row">
                 <button className="btn small ghost" onClick={() => setOpen(open === v._id ? null : v._id)}><Languages /> دبلجة/ترجمة</button>
-                <button className="btn small ghost" onClick={() => remove(v._id)} aria-label="حذف"><Trash2 /></button>
+                <ConfirmButton className="btn icon small ghost danger" confirmLabel="تأكيد" ariaLabel="حذف" onConfirm={() => remove(v._id)}><Trash2 /></ConfirmButton>
               </div>
             </div>
             {open === v._id && (

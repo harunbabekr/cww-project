@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { LANGUAGES } from '../../lib/languages';
 
 export function LanguageSelect({ value, onChange, label, withAuto = false, id }) {
@@ -44,7 +45,14 @@ export function PageHeader({ eyebrow, title, subtitle, children }) {
   );
 }
 
-export const Avatar = ({ name = '?' }) => <div className="avatar">{name.trim().charAt(0).toUpperCase()}</div>;
+// لون ثابت لكل اسم (يسهّل التمييز بين المحادثات كما في تطبيقات المراسلة)
+const hueOf = (s) => [...String(s)].reduce((h, c) => (h * 31 + c.charCodeAt(0)) % 360, 7);
+export const Avatar = ({ name = '?', online }) => (
+  <div className="avatar" style={{ background: `hsl(${hueOf(name)} 38% 34%)` }}>
+    {name.trim().charAt(0).toUpperCase()}
+    {online && <i className="dot online" />}
+  </div>
+);
 
 export function Empty({ icon: Icon, children }) {
   return (
@@ -52,5 +60,21 @@ export function Empty({ icon: Icon, children }) {
       {Icon && <Icon />}
       <div>{children}</div>
     </div>
+  );
+}
+
+/** زر حذف بتأكيد من خطوتين (يعود تلقائياً بعد 3 ثوانٍ) — أريح من confirm() في الجوال */
+export function ConfirmButton({ onConfirm, children, confirmLabel = 'تأكيد الحذف', className = 'btn small ghost danger', disabled, ariaLabel }) {
+  const [armed, setArmed] = useState(false);
+  useEffect(() => {
+    if (!armed) return undefined;
+    const t = setTimeout(() => setArmed(false), 3000);
+    return () => clearTimeout(t);
+  }, [armed]);
+  return (
+    <button type="button" disabled={disabled} aria-label={ariaLabel} className={armed ? 'btn small danger' : className}
+      onClick={() => { if (armed) { setArmed(false); onConfirm(); } else setArmed(true); }}>
+      {armed ? confirmLabel : children}
+    </button>
   );
 }
